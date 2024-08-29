@@ -293,6 +293,7 @@ def generate_transform_matrices(mesh, factors):
         D.append(ds_D.astype('float32'))
         new_mesh_v = ds_D.dot(M[-1].v)
         new_mesh = Mesh(v=new_mesh_v, f=ds_f)
+        print(new_mesh_v.shape)
         F.append(new_mesh.f)
         M.append(new_mesh)
         A.append(

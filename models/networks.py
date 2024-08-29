@@ -5,6 +5,7 @@ from models.conv import ChebConv
 
 from .inits import reset
 from torch_scatter import scatter_add
+from manopth.manolayer import ManoLayer
 
 
 def Pool(x, trans, dim=1):
@@ -13,6 +14,26 @@ def Pool(x, trans, dim=1):
     out = torch.index_select(x, dim, col) * value
     out = scatter_add(out, row, dim, dim_size=trans.size(0))
     return out
+
+class MLPClassifier(nn.Module):
+    def __init__(self, latent_dim):
+        super(MLPClassifier, self).__init__()
+        # Define the first hidden layer
+
+        self.hidden1 = nn.Linear( latent_dim, latent_dim // 2)
+        # Define the second hidden layer
+        self.hidden2 = nn.Linear(latent_dim // 2, latent_dim // 4)
+        # Define the output layer
+        self.output = nn.Linear(latent_dim // 4, 33)
+
+    def forward(self, x):
+        # Apply the first hidden layer with ReLU activation
+        x = F.relu(self.hidden1(x))
+        # Apply the second hidden layer with ReLU activation
+        x = F.relu(self.hidden2(x))
+        # Apply the output layer
+        x = self.output(x)
+        return x
 
 
 class Enblock(nn.Module):
@@ -54,7 +75,7 @@ class Deblock(nn.Module):
 
 
 class AE(nn.Module):
-    def __init__(self, in_channels, out_channels, latent_channels, edge_index,
+    def __init__(self, in_channels, out_channels, output_channels, latent_channels, edge_index,
                  down_transform, up_transform, K, **kwargs):
         super(AE, self).__init__()
         self.in_channels = in_channels
@@ -64,6 +85,11 @@ class AE(nn.Module):
         self.up_transform = up_transform
         # self.num_vert used in the last and the first layer of encoder and decoder
         self.num_vert = self.down_transform[-1].size(0)
+        self.MANO = ManoLayer(
+            mano_root='data/mano/', side='right', use_pca=True, ncomps=45, flat_hand_mean=True)
+        self.trans = torch.FloatTensor([0.0,0.0,0.0]).unsqueeze(0)
+
+        self.mlp_model = MLPClassifier(latent_dim=latent_channels)
 
         # encoder
         self.en_layers = nn.ModuleList()
@@ -93,7 +119,7 @@ class AE(nn.Module):
                             **kwargs))
         # reconstruction
         self.de_layers.append(
-            ChebConv(out_channels[0], in_channels, K, **kwargs))
+            ChebConv(out_channels[0], output_channels, K, **kwargs))
 
         self.reset_parameters()
 
@@ -126,10 +152,26 @@ class AE(nn.Module):
             else:
                 # last layer
                 x = layer(x, self.edge_index[0])
+                #x[:,:,3:] = F.sigmoid(x[:,:,3:])
+
         return x
 
     def forward(self, x):
         # x - batched feature matrix
         z = self.encoder(x)
+
+        mano_reps = z[:,:48]
+
+        trans = self.trans.expand(mano_reps.shape[0],3)
+        
+        device = torch.device('cuda', 2)
+
+        trans = trans.to(device)
+
+        verts, joints = self.MANO(mano_reps, th_trans=trans) 
+        
         out = self.decoder(z)
-        return out
+
+        taxonomy = self.mlp_model(z)
+
+        return out, taxonomy, verts, joints

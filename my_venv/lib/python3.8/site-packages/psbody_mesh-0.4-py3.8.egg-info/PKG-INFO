@@ -1,0 +1,17 @@
+Metadata-Version: 2.1
+Name: psbody-mesh
+Version: 0.4
+Summary: Mesh and MeshViewer utilities
+Home-page: http://ps.is.tuebingen.mpg.de
+Author: Max Planck Perceiving Systems - Body Group
+Maintainer: Jean-Claude Passy
+Maintainer-email: jean-claude.passy@tuebingen.mpg.de
+License: See LICENSE.txt
+License-File: LICENSE.txt
+Requires-Dist: numpy>=1.8
+Requires-Dist: opencv-python
+Requires-Dist: pillow
+Requires-Dist: pyopengl
+Requires-Dist: pyyaml
+Requires-Dist: pyzmq
+Requires-Dist: scipy

@@ -43,6 +43,7 @@ class MeshData(object):
         tmp_mesh = om.read_trimesh(self.template_fp)
         self.template_points = tmp_mesh.points()
         self.template_face = tmp_mesh.face_vertex_indices()
+
         self.num_nodes = self.train_dataset[0].num_nodes
 
         self.num_train_graph = len(self.train_dataset)
@@ -51,6 +52,15 @@ class MeshData(object):
                                                    3).mean(dim=0)
         self.std = self.train_dataset.data.x.view(self.num_train_graph, -1,
                                                   3).std(dim=0)
+
+                                                  
+        print(self.train_dataset.data.x.view(self.num_train_graph, -1,
+                                                  3).shape)
+        print(self.mean.shape)
+        print(self.std.shape)
+
+        exit(0)
+
         self.normalize()
 
     def normalize(self):

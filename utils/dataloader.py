@@ -9,8 +9,10 @@ class DataLoader(torch.utils.data.DataLoader):
         def dense_collate(data_list):
             batch = Batch()
             batch.batch = []
-            for key in data_list[0].keys:
-                batch[key] = default_collate([d[key] for d in data_list])
+
+            batch['x'] = default_collate([d.x for d in data_list])
+            batch['edge_index'] = default_collate([d.edge_index for d in data_list])
+
             for i, data in enumerate(data_list):
                 num_nodes = data.num_nodes
                 if num_nodes is not None:
